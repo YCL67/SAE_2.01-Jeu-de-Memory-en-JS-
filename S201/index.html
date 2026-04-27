@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeu de Memory</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js" type="module"></script>
+</head>
+<body>
+<header><h1>Jeu de Memory</h1></header>
+
+<div class="setup-form">
+  <h2>Démarrer une nouvelle partie</h2>
+  <form id="start-form" class="game-form">
+
+    <label for="pseudo">Votre pseudo :</label>
+    <input type="text" id="pseudo" required placeholder="Saisissez votre pseudo">
+
+    <label for="difficulty-select">Niveau de difficulté :</label>
+    <select id="difficulty-select">
+      <option value="1">Facile (16 cartes)</option>
+      <option value="2">Moyen (24 cartes)</option>
+      <option value="3">Difficile (32 cartes)</option>
+    </select>
+
+    <label for="pack-select">Choisissez un paquet de cartes :</label>
+    <select id="pack-select">
+      <option value="differenttypes">Pokémon Différents</option>
+      <option value="sametypes">Pokémon du même type</option>
+      <option value="pikachus">Que des Pikachu</option>
+    </select>
+
+    <button type="submit">Démarrer la partie</button>
+  </form>
+</div>
+
+<div class="game-area hidden">
+  <div class="game-area-header"></div>
+  <div class="game-board"></div>
+</div>
+</body>
+</html>
