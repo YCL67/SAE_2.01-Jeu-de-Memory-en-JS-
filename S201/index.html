@@ -19,9 +19,10 @@
 
     <label for="difficulty-select">Niveau de difficulté :</label>
     <select id="difficulty-select">
-      <option value="1">Facile (16 cartes)</option>
-      <option value="2">Moyen (24 cartes)</option>
-      <option value="3">Difficile (32 cartes)</option>
+      <option value="4">4 Paires (8 cartes)</option>
+      <option value="5">5 Paires (10 cartes)</option>
+      <option value="6">6 Paires (12 cartes)</option>
+      <option value="8">8 Paires (16 cartes)</option>
     </select>
 
     <label for="pack-select">Choisissez un paquet de cartes :</label>
@@ -36,7 +37,10 @@
 </div>
 
 <div class="game-area hidden">
-  <div class="game-area-header"></div>
+  <div class="game-area-header">
+    <h2>Bonne chance !</h2>
+    <button id="abandon">Abandonner la partie</button>
+  </div>
   <div class="game-board"></div>
 </div>
 </body>
