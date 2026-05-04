@@ -5,13 +5,47 @@ import {ApiService} from './ApiService.js';
 const domManager = new DOMManager();
 const game = new Game();
 
-// Gestion du bouton Abandonner
+const endTitle = document.getElementById('end-title');
+endTitle.style.textAlign = 'center';
+endTitle.style.marginBottom = '1.5rem';
+endTitle.style.color = 'white';
+
+const endMessage = document.getElementById('end-message');
+endMessage.style.textAlign = 'center';
+endMessage.style.fontSize = '1.2rem';
+endMessage.style.marginBottom = '1.5rem';
+endMessage.style.color = 'white';
+const btnReplay = document.getElementById('btn-replay');
+btnReplay.style.width = '100%';
+btnReplay.style.padding = '15px';
+btnReplay.style.backgroundColor = '#4CAF50';
+btnReplay.style.color = 'white';
+btnReplay.style.fontSize = '1.2rem';
+btnReplay.style.fontWeight = 'bold';
+btnReplay.style.border = 'none';
+btnReplay.style.borderRadius = '8px';
+btnReplay.style.cursor = 'pointer';
+btnReplay.style.marginTop = '10px';
+
+
+
+btnReplay.addEventListener('click', () => {
+  document.getElementById('end-screen').classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+});
+
+
 document.getElementById('abandon').addEventListener('click', async function() {
   if (confirm("Êtes-vous sûr de vouloir abandonner la partie ?")) {
     await game.endGame();
 
-    document.querySelector('.setup-form').classList.remove('hidden');
+    const temps = game.formattedTime;
+
+    document.getElementById('end-title').textContent = "Partie abandonnée...";
+    document.getElementById('end-message').textContent = `Temps écoulé : ${temps}. La prochaine fois vous y arriverez !`;
+
     document.querySelector('.game-area').classList.add('hidden');
+    document.getElementById('end-screen').classList.remove('hidden');
 
     document.querySelector('.game-board').innerHTML = '';
   }
@@ -27,7 +61,7 @@ document.querySelector('.game-form').addEventListener('submit', async function (
   const difficultyElement = document.getElementById('difficulty-select');
   const difficultyLevel = difficultyElement ? difficultyElement.value : 4;
 
-  document.querySelector('.setup-form').classList.add('hidden');
+  document.getElementById('start-screen').classList.add('hidden');
   document.querySelector('.game-area').classList.remove('hidden');
 
   try {
@@ -39,7 +73,7 @@ document.querySelector('.game-form').addEventListener('submit', async function (
     console.error('Error:', error);
     alert(error.message || 'Erreur lors de la création de la partie');
 
-    document.querySelector('.setup-form').classList.remove('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
     document.querySelector('.game-area').classList.add('hidden');
   }
 });

@@ -7,8 +7,18 @@ export class Game {
   #flippedCards = [];
   #remainingPairs = 0;
   #isLocked = false;
+  #timerInterval = null;
+  #secondsElapsed = 0;
+
+  get formattedTime() {
+    const minutes = Math.floor(this.#secondsElapsed / 60);
+    const seconds = this.#secondsElapsed % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
 
   async endGame() {
+    this.#stopTimer();
+
     const gameId = this.#id;
     const remainingPairs = this.#remainingPairs;
 
@@ -45,6 +55,8 @@ export class Game {
     cardElements.forEach(cardElement => {
       cardElement.addEventListener('click', () => this.#handleCardClick(cardElement));
     });
+
+    this.#startTimer();
   }
 
   #handleCardClick(cardElement) {
@@ -69,12 +81,16 @@ export class Game {
 
       if (this.#remainingPairs === 0) {
         setTimeout(() => {
-          alert("Félicitations ! Vous avez trouvé toutes les paires.");
           this.endGame();
 
-          // Ramener à l'accueil après victoire
-          document.querySelector('.setup-form').classList.remove('hidden');
+          const temps = this.formattedTime;
+
+          document.getElementById('end-title').textContent = "Félicitations !";
+          document.getElementById('end-message').textContent = `Vous avez trouvé toutes les paires en ${temps} !`;
+
           document.querySelector('.game-area').classList.add('hidden');
+          document.getElementById('end-screen').classList.remove('hidden');
+
           document.querySelector('.game-board').innerHTML = '';
         }, 600);
       }
@@ -95,5 +111,26 @@ export class Game {
       [arrayCopy[i], arrayCopy[j]] = [arrayCopy[j], arrayCopy[i]];
     }
     return arrayCopy;
+  }
+
+  #startTimer() {
+    this.#secondsElapsed = 0;
+
+    const timerDisplay = document.getElementById('timer-display');
+    if (timerDisplay) {
+      timerDisplay.textContent = "00:00";
+    }
+
+    this.#timerInterval = setInterval(() => {
+      this.#secondsElapsed++;
+
+      if (timerDisplay) {
+        timerDisplay.textContent = this.formattedTime;
+      }
+    }, 1000);
+  }
+
+  #stopTimer() {
+    clearInterval(this.#timerInterval);
   }
 }

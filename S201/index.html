@@ -10,7 +10,7 @@
 <body>
 <header><h1>Jeu de Memory</h1></header>
 
-<div class="setup-form">
+<div class="setup-form" id="start-screen">
   <h2>Démarrer une nouvelle partie</h2>
   <form id="start-form" class="game-form">
 
@@ -39,9 +39,20 @@
 <div class="game-area hidden">
   <div class="game-area-header">
     <h2>Bonne chance !</h2>
+    <div id="timer-display" class="game-timer">00:00</div>
     <button id="abandon">Abandonner la partie</button>
   </div>
   <div class="game-board"></div>
 </div>
+
+
+<div id="end-screen" class="setup-form hidden">
+  <h2 id="end-title">Fin de partie</h2>
+  <div class="game-form">
+    <p id="end-message"></p>
+    <button id="btn-replay" type="button">Retour à l'accueil</button>
+  </div>
+</div>
+
 </body>
 </html>
