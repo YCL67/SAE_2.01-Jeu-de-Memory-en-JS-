@@ -42,7 +42,7 @@ document.getElementById('abandon').addEventListener('click', async function() {
     const temps = game.formattedTime;
 
     document.getElementById('end-title').textContent = "Partie abandonnée...";
-    document.getElementById('end-message').textContent = `Temps écoulé : ${temps}. La prochaine fois vous y arriverez !`;
+    document.getElementById('end-message').textContent = `Temps restant à l'abandon : ${temps}. La prochaine fois vous y arriverez !`;
 
     document.querySelector('.game-area').classList.add('hidden');
     document.getElementById('end-screen').classList.remove('hidden');

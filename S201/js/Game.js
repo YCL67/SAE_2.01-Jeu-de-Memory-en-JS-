@@ -8,11 +8,11 @@ export class Game {
   #remainingPairs = 0;
   #isLocked = false;
   #timerInterval = null;
-  #secondsElapsed = 0;
+  #timeRemaining = 0;
 
   get formattedTime() {
-    const minutes = Math.floor(this.#secondsElapsed / 60);
-    const seconds = this.#secondsElapsed % 60;
+    const minutes = Math.floor(this.#timeRemaining / 60);
+    const seconds = this.#timeRemaining % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
 
@@ -34,6 +34,8 @@ export class Game {
     this.#id = id;
 
     let pairsCount = parseInt(difficulty);
+
+    this.#timeRemaining = pairsCount * 10;
 
     const fullCollection = imageCollections[packName];
     const shuffledCollection = this.#shuffle(fullCollection);
@@ -86,7 +88,7 @@ export class Game {
           const temps = this.formattedTime;
 
           document.getElementById('end-title').textContent = "Félicitations !";
-          document.getElementById('end-message').textContent = `Vous avez trouvé toutes les paires en ${temps} !`;
+          document.getElementById('end-message').textContent = `Vous avez trouvé toutes les paires ! Il vous restait ${temps} au compteur !`;
 
           document.querySelector('.game-area').classList.add('hidden');
           document.getElementById('end-screen').classList.remove('hidden');
@@ -114,20 +116,37 @@ export class Game {
   }
 
   #startTimer() {
-    this.#secondsElapsed = 0;
 
     const timerDisplay = document.getElementById('timer-display');
     if (timerDisplay) {
-      timerDisplay.textContent = "00:00";
+      timerDisplay.textContent = this.formattedTime;
     }
 
     this.#timerInterval = setInterval(() => {
-      this.#secondsElapsed++;
+      this.#timeRemaining--;
 
       if (timerDisplay) {
         timerDisplay.textContent = this.formattedTime;
       }
+
+      if (this.#timeRemaining <= 0) {
+        this.#handleTimeUp();
+      }
     }, 1000);
+  }
+
+  #handleTimeUp() {
+    this.#stopTimer();
+    this.#isLocked = true; // On bloque le plateau pour empêcher de cliquer
+    this.endGame(); // On avertit l'API de la fin de partie
+
+    document.getElementById('end-title').textContent = "Temps écoulé !";
+    document.getElementById('end-message').textContent = `Dommage, la partie est terminée. Il vous restait ${this.#remainingPairs} paires à trouver.`;
+
+    document.querySelector('.game-area').classList.add('hidden');
+    document.getElementById('end-screen').classList.remove('hidden');
+
+    document.querySelector('.game-board').innerHTML = '';
   }
 
   #stopTimer() {
