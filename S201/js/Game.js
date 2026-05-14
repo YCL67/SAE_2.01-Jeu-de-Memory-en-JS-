@@ -2,217 +2,225 @@ import { imageCollections } from './ImageCollection.js';
 import { ApiService } from './ApiService.js';
 
 /**
- * Classe Game : Gère la logique métier du Memory.
- * En tant qu'élèves, nous avons choisi d'isoler la logique ici pour
- * ne pas mélanger les calculs avec l'affichage (géré par DOMManager).
+ * Classe Game : Gère toute la logique et les règles du Memory.
  */
 export class Game {
-  // Propriétés privées pour l'encapsulation (on ne veut pas que n'importe quel script modifie le score)
-  #id;                 // Identifiant unique de la partie côté serveur
-  #cards = [];         // Tableau contenant les objets images mélangés
-  #flippedCards = [];  // Stocke les 2 cartes actuellement retournées pour comparaison
-  #remainingPairs = 0; // Compteur pour savoir quand la partie est finie
-  #isLocked = false;   // Verrou pour empêcher de cliquer sur 10 cartes en même temps
-  #timerInterval = null; // Référence de l'intervalle pour pouvoir le stopper
-  #timeRemaining = 0;  // Temps restant pour le compte à rebours
+
+
+  #id;                 // Identifiant unique de la partie (fourni par l'API)
+  #cards = [];         // Tableau contenant les objets de la collection en cours
+  #flippedCards = [];  // Tableau temporaire stockant les 1 ou 2 cartes actuellement retournées
+  #remainingPairs = 0; // Compteur de paires restantes pour condition de victoire
+  #isLocked = false;   // Valeur pour bloquer les clics pendant les animations
+  #timerInterval = null; // Référence du setInterval pour le chronomètre
+  #timeRemaining = 0;  // Temps en secondes (compte à rebours ou chronomètre selon le mode)
 
   /**
-   * Getter pour formater le temps en MM:SS.
-   * Utile pour l'affichage et les messages de fin.
+   * Formate le temps en chaîne "MM:SS".
+   * @returns {string} Le temps formaté (exemple: "01:15")
    */
   get formattedTime() {
     const minutes = Math.floor(this.#timeRemaining / 60);
-    const seconds = this.#timeRemaining % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    const secondes = this.#timeRemaining % 60;
+    // padStart ajoute un '0' devant si le chiffre est inférieur à 10
+    return `${minutes.toString().padStart(2, '0')}:${secondes.toString().padStart(2, '0')}`;
   }
 
   /**
-   * Déclenche la fin de partie.
-   * On arrête le chrono et on informe le serveur via l'ApiService.
-   */
-  async endGame() {
-    this.#stopTimer();
-
-    const gameId = this.#id;
-    const remainingPairs = this.#remainingPairs;
-
-    try {
-      // On envoie le nombre de paires qu'il restait (0 si victoire)
-      const result = await ApiService.updateGameResult(gameId, remainingPairs);
-      console.log('Données synchronisées avec le serveur:', result);
-    } catch (error) {
-      console.error('Échec de la synchronisation API:', error);
-    }
-  }
-
-  /**
-   * Initialisation de la partie.
-   * @param {number} id - ID reçu de l'API lors du POST initial
-   * @param {string} packName - Collection d'images choisie
-   * @param {DOMManager} domManager - Instance pour l'affichage
-   * @param {number} difficulty - Nombre de paires (4, 5, 6 ou 8)
-   * @param {boolean} isChronoMode - Si l'option chrono est cochée
+   * Initialise et lance une nouvelle partie.
+   * @param {number} id - L'ID de session renvoyé par l'API
+   * @param {string} packName - Le nom de la collection choisie ('differenttypes', etc.)
+   * @param {DOMManager} domManager - L'instance gérant l'interface
+   * @param {number|string} difficulty - Le nombre de paires (4, 5, 6, 8)
+   * @param {boolean} isChronoMode - True si le joueur a coché le "Mode Détente"
    */
   startGame(id, packName, domManager, difficulty, isChronoMode = false) {
     this.#id = id;
     this.isChronoMode = isChronoMode;
     let pairsCount = parseInt(difficulty);
 
-    // Initialisation du temps : 0 si on a activé le mode chrono, sinon 10 secondes par paire.
+    // Initialisation du temps selon le mode de jeu choisi
     if (this.isChronoMode) {
-      this.#timeRemaining = 0;
+      this.#timeRemaining = 0; // Mode CHRONO : on compte vers le haut
     } else {
-      this.#timeRemaining = pairsCount * 10;
+      this.#timeRemaining = pairsCount * 10; // Mode normal : 10 secondes par paire
     }
 
-    // 1. Préparation du deck : on prend les images, on mélange, on coupe selon difficulté
+    // Préparation du paquet
     const fullCollection = imageCollections[packName];
-    const shuffledCollection = this.#shuffle(fullCollection);
-    const selectedImages = shuffledCollection.slice(0, pairsCount);
+    // On mélange la collection complète puis on en coupe un morceau (slice) selon la difficulté
+    const selectedImages = this.#shuffle(fullCollection).slice(0, pairsCount);
 
-    // 2. Création des paires et mélange final
+    // On duplique les images pour créer les paires et on mélange le paquet final
     const deck = [...selectedImages, ...selectedImages];
     this.#cards = this.#shuffle(deck);
     this.#remainingPairs = pairsCount;
 
-    // 3. Affichage via le DOMManager
+    // On effectue l'affichage a l'aide du DOMManager
     domManager.createCards(this.#cards);
 
-    // 4. Gestion dynamique de la grille CSS pour que l'affichage soit "clean"
+    // Gestion responsive de la grille CSS (4, 5, 6 ou 8 colonnes)
     const boardElement = document.querySelector('.game-board');
-    boardElement.classList.remove('cols-5', 'cols-6', 'cols-8'); // Reset des classes
+    boardElement.classList.remove('cols-5', 'cols-6', 'cols-8');
 
-    if (pairsCount === 5) {
-      boardElement.classList.add('cols-5');
-    } else if (pairsCount === 6) {
-      boardElement.classList.add('cols-6');
-    } else if (pairsCount === 8) {
-      boardElement.classList.add('cols-8'); // Active le mode 2 lignes de 8
-    }
+    if (pairsCount === 5) boardElement.classList.add('cols-5');
+    else if (pairsCount === 6) boardElement.classList.add('cols-6');
+    else if (pairsCount === 8) boardElement.classList.add('cols-8');
 
-    // 5. Mise en place des écouteurs d'événements sur les nouvelles cartes
+    // On ajoute les Event Listeners sur les cartes générées
     const cardElements = document.querySelectorAll('.card');
     cardElements.forEach(cardElement => {
+      // On utilise une fonction fléchée pour conserver le contexte 'this' de la classe Game
       cardElement.addEventListener('click', () => this.#handleCardClick(cardElement));
     });
 
-    // 6. Lancement du compte à rebours
+    // Lancement du temps
     this.#startTimer();
   }
 
   /**
-   * Gestionnaire de clic.
-   * Vérifie si on peut retourner la carte et si une paire est formée.
+   * Arrête le jeu proprement et synchronise les résultats avec le serveur.
+   */
+  async endGame() {
+    this.#stopTimer();
+
+    try {
+      // On envoie le score final (0 si victoire complète, > 0 si abandon/défaite)
+      const result = await ApiService.updateGameResult(this.#id, this.#remainingPairs);
+      console.log('Score synchronisé avec succès :', result);
+    } catch (error) {
+      console.error('Erreur API lors de la fin de partie :', error);
+    }
+  }
+
+  /**
+   * Gère le comportement lorsqu'une carte est cliquée.
+   * @param {HTMLElement} cardElement - L'élément HTML cliqué
    */
   #handleCardClick(cardElement) {
-    // On ignore le clic si le jeu est verrouillé ou si la carte est déjà retournée
+    // On bloque si le jeu analyse déjà 2 cartes ou si la carte cliquée est déjà face visible
     if (this.#isLocked || cardElement.classList.contains('flip')) return;
 
+    // On retourne visuellement la carte et on la stocke
     cardElement.classList.add('flip');
     this.#flippedCards.push(cardElement);
 
+    // Si 2 cartes sont retournées, on déclenche la vérification
     if (this.#flippedCards.length === 2) {
       this.#checkForMatch();
     }
   }
 
   /**
-   * Logique de comparaison des deux cartes retournées.
+   * Vérifie si les deux cartes retournées forment une paire valide.
    */
   #checkForMatch() {
-    this.#isLocked = true; // On verrouille pour laisser le temps de voir les cartes
+    this.#isLocked = true; // Verrouillage immédiat pour empêcher d'autres clics
     const [card1, card2] = this.#flippedCards;
 
-    // Comparaison via le dataset id défini dans DOMManager
+    // Comparaison basée sur l'attribut 'data-pokemon-id' injecté par le DOMManager
     if (card1.dataset.pokemonId === card2.dataset.pokemonId) {
+      // Cas où la paire est trouvée
       this.#flippedCards = [];
       this.#remainingPairs--;
       this.#isLocked = false;
 
-      // Condition de victoire
+      // Vérification de la condition de victoire
       if (this.#remainingPairs === 0) {
+        // Petit délai pour laisser l'animation de la dernière carte se terminer
         setTimeout(() => {
           this.endGame();
-          if (this.isChronoMode) {
-            this.#showEndScreen("Félicitations !", `Victoire ! Vous avez terminé en ${this.formattedTime} !`);
-          } else {
-            this.#showEndScreen("Félicitations !", `Victoire ! Il vous restait ${this.formattedTime} !`);
-          }
+
+          // Message dynamique selon le mode de jeu
+          const msg = this.isChronoMode
+              ? `Victoire ! Vous avez terminé en ${this.formattedTime} !`
+              : `Victoire ! Il vous restait ${this.formattedTime} !`;
+
+          this.#showEndScreen("Félicitations !", msg);
         }, 600);
       }
     } else {
-      // Pas de match : on retourne les cartes après 1 seconde
+      // Cas ou la paire est mauvaise
+      // On laisse les cartes visibles 0.8 seconde avant de les retourner
       setTimeout(() => {
         card1.classList.remove('flip');
         card2.classList.remove('flip');
         this.#flippedCards = [];
-        this.#isLocked = false;
-      }, 1000);
+        this.#isLocked = false; // Déverrouillage
+      }, 800);
     }
   }
 
   /**
-   * Algorithme de mélange (Fisher-Yates).
+   * Algorithme de mélange.
+   * @param {Array} array - Le tableau à mélanger
+   * @returns {Array} Une nouvelle copie du tableau, mélangée
    */
   #shuffle(array) {
     const arrayCopy = [...array];
     for (let i = arrayCopy.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
+      // Utilisation du 'Destructuring assignment' pour échanger les valeurs proprement
       [arrayCopy[i], arrayCopy[j]] = [arrayCopy[j], arrayCopy[i]];
     }
     return arrayCopy;
   }
 
   /**
-   * Gestion du compte à rebours.
+   * Initialise et gère la boucle temporelle du jeu.
    */
   #startTimer() {
     const timerDisplay = document.getElementById('timer-display');
     if (timerDisplay) timerDisplay.textContent = this.formattedTime;
 
     this.#timerInterval = setInterval(() => {
-
-      // NOUVEAU : On vérifie dans quel mode on est
       if (this.isChronoMode) {
-        // Mode détente : le temps augmente
+        // Mode CHRONO : Chronomètre classique (+1s)
         this.#timeRemaining++;
-        if (timerDisplay) timerDisplay.textContent = this.formattedTime;
-
       } else {
-        // Mode normal : compte à rebours
+        // Mode normal : Compte à rebours (-1s)
         this.#timeRemaining--;
-        if (timerDisplay) timerDisplay.textContent = this.formattedTime;
 
+        // Vérification de la défaite par manque de temps
         if (this.#timeRemaining <= 0) {
           this.#handleTimeUp();
         }
       }
 
+      // Mise à jour de l'affichage à chaque tic
+      if (timerDisplay) timerDisplay.textContent = this.formattedTime;
     }, 1000);
   }
 
   /**
-   * Défaite par temps écoulé.
+   * Stoppe l'intervalle temporel en cours.
    */
-  #handleTimeUp() {
-    this.#stopTimer();
-    this.#isLocked = true;
-    this.endGame();
-    this.#showEndScreen("Temps écoulé !", `Perdu... Il restait ${this.#remainingPairs} paires.`);
+  #stopTimer() {
+    if (this.#timerInterval) clearInterval(this.#timerInterval);
   }
 
   /**
-   * Centralisation de l'affichage de l'écran de fin.
+   * Gère la séquence de défaite lorsque le temps est écoulé.
+   */
+  #handleTimeUp() {
+    this.#stopTimer();
+    this.#isLocked = true; // On bloque le plateau
+    this.endGame();
+    this.#showEndScreen("Temps écoulé !", `Perdu... Il restait ${this.#remainingPairs} paires à trouver.`);
+  }
+
+  /**
+   * Fonction pour basculer sur l'écran de fin.
+   * @param {string} title - Titre à afficher (Victoire/Défaite)
+   * @param {string} message - Détail du score/temps
    */
   #showEndScreen(title, message) {
     document.getElementById('end-title').textContent = title;
     document.getElementById('end-message').textContent = message;
+
+    // Bascule des classes CSS pour masquer le jeu et afficher le menu de fin
     document.querySelector('.game-area').classList.add('hidden');
     document.getElementById('end-screen').classList.remove('hidden');
-    document.querySelector('.game-board').innerHTML = '';
-  }
-
-  #stopTimer() {
-    clearInterval(this.#timerInterval);
+    document.querySelector('.game-board').innerHTML = ''; // Nettoyage de la grille
   }
 }
