@@ -68,13 +68,6 @@ header h1 {
     max-width: 56rem;
 }
 
-.setup-form h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--color-text-heading);
-}
-
 /* ── Form ── */
 .game-form {
     display: flex;
@@ -104,12 +97,6 @@ header h1 {
     outline: none;
 }
 
-.game-form input:focus,
-.game-form select:focus {
-    border-color: var(--color-border-input-focus);
-    box-shadow: 0 0 0 2px var(--color-border-input);
-}
-
 .game-form button[type="submit"] {
     width: 100%;
     display: flex;
@@ -117,23 +104,16 @@ header h1 {
     padding: 0.5rem 1rem;
     border: none;
     border-radius: 0.375rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    font-size: 0.875rem;
     font-weight: 500;
     color: var(--color-text-white);
     background-color: var(--color-btn-primary);
     cursor: pointer;
-    outline: none;
-}
-
-.game-form button[type="submit"]:hover {
-    background-color: var(--color-btn-primary-hover);
 }
 
 /* ── Game area ── */
 .game-area {
     width: 100%;
-    max-width: 80rem;
+    max-width: 90rem; /* Élargi pour supporter les lignes de 8 cartes */
     margin-top: 2rem;
 }
 
@@ -141,12 +121,10 @@ header h1 {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
 }
 
 .game-area-header h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
     color: var(--color-text-heading);
 }
 
@@ -154,70 +132,51 @@ header h1 {
     padding: 0.5rem 1rem;
     background-color: var(--color-btn-danger);
     color: var(--color-text-white);
-    font-weight: 500;
     border: none;
     border-radius: 0.375rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     cursor: pointer;
-    outline: none;
-}
-
-#abandon:hover {
-    background-color: var(--color-btn-danger-hover);
 }
 
 .game-timer {
-    font-size: 1.125rem;
+    font-size: 1.5rem;
     font-family: monospace;
     color: var(--color-timer);
 }
 
-/* ── Game board (CSS Grid) ── */
+/* ── Game board ── */
 .game-board {
     display: grid;
     gap: 1rem;
-    justify-items: center;
-    grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
-    width: 100%;
+    justify-content: center;
+    margin: 0 auto;
+    width: fit-content;
+    /* 4 colonnes par défaut */
+    grid-template-columns: repeat(4, 140px);
 }
 
-@media (min-width: 768px) {
-    .game-board {
-        grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+.game-board.cols-5 { grid-template-columns: repeat(5, 140px); }
+.game-board.cols-6 { grid-template-columns: repeat(6, 140px); }
+.game-board.cols-8 { grid-template-columns: repeat(8, 125px); } /* Taille réduite pour faire tenir 8 cartes */
+
+@media (max-width: 1024px) {
+    .game-board.cols-8 {
+        grid-template-columns: repeat(4, 140px); /* On repasse sur 4 colonnes sur écran moyen */
     }
-}
-
-.game-board.cols-5 {
-    grid-template-columns: repeat(5, 1fr);
-}
-
-/* ── Hidden utility ── */
-.hidden {
-    display: none !important;
 }
 
 /* ── Cards ── */
 .card {
     perspective: 1000px;
-    width: 5.5rem;
-    height: 7.6rem;
+    width: 100%;
+    aspect-ratio: 1024 / 1420;
     cursor: pointer;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-}
-
-@media (min-width: 768px) {
-    .card {
-        width: 8rem;
-        height: 11.1rem;
-    }
 }
 
 .card-inner {
     position: relative;
     width: 100%;
     height: 100%;
-    transition: transform 0.6s;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     transform-style: preserve-3d;
 }
 
@@ -233,22 +192,16 @@ header h1 {
     backface-visibility: hidden;
     border-radius: 0.5rem;
     overflow: hidden;
+    border: 2px solid var(--color-border-card);
 }
 
 .card-front {
     background-color: var(--color-bg-card-front);
-    border: 2px solid var(--color-border-card);
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .card-back {
     transform: rotateY(180deg);
     background-color: var(--color-bg-card-back);
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .card-front img,
@@ -256,5 +209,8 @@ header h1 {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 0.5rem;
+}
+
+.hidden {
+    display: none !important;
 }
