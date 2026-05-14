@@ -61,6 +61,8 @@ document.querySelector('.game-form').addEventListener('submit', async function (
   const difficultyElement = document.getElementById('difficulty-select');
   const difficultyLevel = difficultyElement ? difficultyElement.value : 4;
 
+  const isChronoMode = document.getElementById('chrono-mode').checked;
+
   document.getElementById('start-screen').classList.add('hidden');
   document.querySelector('.game-area').classList.remove('hidden');
 
@@ -68,7 +70,7 @@ document.querySelector('.game-form').addEventListener('submit', async function (
     const data = await ApiService.createGame(pseudoInput, difficultyLevel);
     console.log('Success:', data);
 
-    game.startGame(data.id, selectedPackName, domManager, difficultyLevel);
+    game.startGame(data.id, selectedPackName, domManager, difficultyLevel, isChronoMode);
   } catch (error) {
     console.error('Error:', error);
     alert(error.message || 'Erreur lors de la création de la partie');

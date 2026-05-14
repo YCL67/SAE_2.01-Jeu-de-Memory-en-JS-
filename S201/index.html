@@ -8,7 +8,19 @@
   <script src="js/app.js" type="module"></script>
 </head>
 <body>
-<header><h1>Jeu de Memory</h1></header>
+
+<div class="bg-animation">
+  <div class="column up"></div>
+  <div class="column down"></div>
+  <div class="column up"></div>
+  <div class="column down"></div>
+  <div class="column up"></div>
+  <div class="column down"></div>
+</div>
+
+<header>
+  <img src="assets/images/menu/menulogo.png" alt="Logo du Menu" class="logo">
+</header>
 
 <div class="setup-form" id="start-screen">
   <h2>Démarrer une nouvelle partie</h2>
@@ -24,6 +36,11 @@
       <option value="6">6 Paires (12 cartes)</option>
       <option value="8">8 Paires (16 cartes)</option>
     </select>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="chrono-mode" name="mode-chrono">
+      <label for ="chrono-mode">Mode CHRONO (Temps illimité)</label>
+    </div>
 
     <label for="pack-select">Choisissez un paquet de cartes :</label>
     <select id="pack-select">

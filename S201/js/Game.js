@@ -51,13 +51,19 @@ export class Game {
    * @param {string} packName - Collection d'images choisie
    * @param {DOMManager} domManager - Instance pour l'affichage
    * @param {number} difficulty - Nombre de paires (4, 5, 6 ou 8)
+   * @param {boolean} isChronoMode - Si l'option chrono est cochée
    */
-  startGame(id, packName, domManager, difficulty) {
+  startGame(id, packName, domManager, difficulty, isChronoMode = false) {
     this.#id = id;
+    this.isChronoMode = isChronoMode;
     let pairsCount = parseInt(difficulty);
 
-    // Initialisation du temps : on a prévu 10 secondes par paire
-    this.#timeRemaining = pairsCount * 10;
+    // Initialisation du temps : 0 si on a activé le mode chrono, sinon 10 secondes par paire.
+    if (this.isChronoMode) {
+      this.#timeRemaining = 0;
+    } else {
+      this.#timeRemaining = pairsCount * 10;
+    }
 
     // 1. Préparation du deck : on prend les images, on mélange, on coupe selon difficulté
     const fullCollection = imageCollections[packName];
@@ -127,7 +133,11 @@ export class Game {
       if (this.#remainingPairs === 0) {
         setTimeout(() => {
           this.endGame();
-          this.#showEndScreen("Félicitations !", `Victoire ! Il vous restait ${this.formattedTime} !`);
+          if (this.isChronoMode) {
+            this.#showEndScreen("Félicitations !", `Victoire ! Vous avez terminé en ${this.formattedTime} !`);
+          } else {
+            this.#showEndScreen("Félicitations !", `Victoire ! Il vous restait ${this.formattedTime} !`);
+          }
         }, 600);
       }
     } else {
@@ -161,13 +171,23 @@ export class Game {
     if (timerDisplay) timerDisplay.textContent = this.formattedTime;
 
     this.#timerInterval = setInterval(() => {
-      this.#timeRemaining--;
 
-      if (timerDisplay) timerDisplay.textContent = this.formattedTime;
+      // NOUVEAU : On vérifie dans quel mode on est
+      if (this.isChronoMode) {
+        // Mode détente : le temps augmente
+        this.#timeRemaining++;
+        if (timerDisplay) timerDisplay.textContent = this.formattedTime;
 
-      if (this.#timeRemaining <= 0) {
-        this.#handleTimeUp();
+      } else {
+        // Mode normal : compte à rebours
+        this.#timeRemaining--;
+        if (timerDisplay) timerDisplay.textContent = this.formattedTime;
+
+        if (this.#timeRemaining <= 0) {
+          this.#handleTimeUp();
+        }
       }
+
     }, 1000);
   }
 
