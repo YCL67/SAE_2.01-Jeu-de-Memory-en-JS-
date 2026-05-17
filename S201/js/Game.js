@@ -6,7 +6,7 @@ import { ApiService } from './ApiService.js';
  */
 export class Game {
 
-
+  // Déclaration des variables
   #id;                 // Identifiant unique de la partie (fourni par l'API)
   #cards = [];         // Tableau contenant les objets de la collection en cours
   #flippedCards = [];  // Tableau temporaire stockant les 1 ou 2 cartes actuellement retournées
@@ -14,6 +14,124 @@ export class Game {
   #isLocked = false;   // Valeur pour bloquer les clics pendant les animations
   #timerInterval = null; // Référence du setInterval pour le chronomètre
   #timeRemaining = 0;  // Temps en secondes (compte à rebours ou chronomètre selon le mode)
+
+  // Gestion des sons ici
+  #flipSound = new Audio('assets/sounds/card_flip.mp3');
+  #matchSound = new Audio('assets/sounds/pair_found.wav');
+  #failSound = new Audio('assets/sounds/pair_miss.wav');
+
+  // Playlist pour le menu
+  #menuMusicTracks = [
+      'assets/music/menu_music1.mp3',
+      'assets/music/menu_music2.mp3',
+      'assets/music/menu_music3.mp3'
+  ];
+
+  // Playlist pour les parties
+  #gameMusicTracks = [
+    'assets/music/game_music1.mp3',
+    'assets/music/game_music2.mp3',
+    'assets/music/game_music3.mp3'
+  ];
+
+  // Le lecteur audio principal (vide par défaut)
+  #menuMusic = new Audio();
+  #gameMusic = new Audio();
+  #winJingle = new Audio('assets/music/win_music.mp3');
+  #loseJingle = new Audio('assets/music/loosing_music.mp3');
+
+
+  isMuted = false; // Gestion de l'activation du son ou non. Par défaut, le son est désactivé
+
+
+
+  // Fonction utilitaire pour jouer un son sans répétitions
+  #playSound(audioElement) {
+    // Si le jeu est mute, on ne fait rien
+    if (this.isMuted) return;
+
+    // On crée un "clone" du son pour que chaque son aie son propre player
+    const soundClone = audioElement.cloneNode();
+
+    soundClone.play().catch(err => console.log("Son bloqué par le navigateur", err));
+  }
+
+  // Fonctions utilitaires pour la gestion de la musique
+  playMenuMusic(forceNewTrack = false) {
+    this.#winJingle.pause();
+    this.#loseJingle.pause();
+
+    if (forceNewTrack || !this.#menuMusic.src) {
+      const randomIndex = Math.floor(Math.random() * this.#menuMusicTracks.length);
+      this.#menuMusic.src = this.#menuMusicTracks[randomIndex];
+    }
+
+    this.#menuMusic.loop = true;
+    this.#menuMusic.volume = 0.3;
+
+    if (!this.isMuted) {
+      this.#menuMusic.play().catch(() => console.log("Attente d'interaction"));
+    }
+  }
+
+  stopMenuMusic() {
+    this.#menuMusic.pause();
+    this.#menuMusic.currentTime = 0;
+  }
+
+  playJingle(isVictory) {
+    if (this.isMuted) return;
+    if (isVictory) {
+      this.#winJingle.currentTime = 0;
+      this.#winJingle.play().catch(()=>{});
+      this.#winJingle.volume = 0.3;
+    } else {
+      this.#loseJingle.currentTime = 0;
+      this.#loseJingle.play().catch(()=>{});
+      this.#loseJingle.volume = 0.3;
+    }
+  }
+
+  toggleMuteState(forceMuteState) {
+    this.isMuted = forceMuteState;
+    if (this.isMuted) {
+      this.#menuMusic.pause();
+      this.#gameMusic.pause();
+      this.#winJingle.pause();
+      this.#loseJingle.pause();
+    } else {
+      const startScreen = document.getElementById('start-screen');
+      if (startScreen && !startScreen.classList.contains('hidden')) {
+        this.#menuMusic.play().catch(()=>{});
+      } else {
+        // Si on est en jeu, on relance la musique du jeu
+        const gameArea = document.querySelector('.game-area');
+        if (gameArea && !gameArea.classList.contains('hidden')) {
+          this.#gameMusic.play().catch(()=>{});
+        }
+      }
+    }
+  }
+  playGameMusic() {
+    this.stopMenuMusic(); // On s'assure que la musique du menu est bien coupée
+
+    // On tire une musique de jeu au hasard à chaque nouvelle partie
+    const randomIndex = Math.floor(Math.random() * this.#gameMusicTracks.length);
+    this.#gameMusic.src = this.#gameMusicTracks[randomIndex];
+
+    this.#gameMusic.loop = true;
+    this.#gameMusic.volume = 0.2; // Un peu plus bas pour bien entendre les bruitages
+
+    if (!this.isMuted) {
+      this.#gameMusic.play().catch(()=>{});
+    }
+  }
+
+  stopGameMusic() {
+    this.#gameMusic.pause();
+    this.#gameMusic.currentTime = 0;
+  }
+
 
   /**
    * Formate le temps en chaîne "MM:SS".
@@ -75,6 +193,7 @@ export class Game {
     });
 
     // Lancement du temps
+    this.playGameMusic();
     this.#startTimer();
   }
 
@@ -101,6 +220,9 @@ export class Game {
     // On bloque si le jeu analyse déjà 2 cartes ou si la carte cliquée est déjà face visible
     if (this.#isLocked || cardElement.classList.contains('flip')) return;
 
+    // On joue le son de la carte qui se retourne
+    this.#playSound(this.#flipSound);
+
     // On retourne visuellement la carte et on la stocke
     cardElement.classList.add('flip');
     this.#flippedCards.push(cardElement);
@@ -120,7 +242,11 @@ export class Game {
 
     // Comparaison basée sur l'attribut 'data-pokemon-id' injecté par le DOMManager
     if (card1.dataset.pokemonId === card2.dataset.pokemonId) {
-      // Cas où la paire est trouvée
+      // --- Cas où la paire est trouvée ---
+
+      // On délègue le son et les confettis à notre nouvelle fonction dédiée
+      this.#handleMatchAnimation(card1, card2);
+
       this.#flippedCards = [];
       this.#remainingPairs--;
       this.#isLocked = false;
@@ -136,19 +262,72 @@ export class Game {
               ? `Victoire ! Vous avez terminé en ${this.formattedTime} !`
               : `Victoire ! Il vous restait ${this.formattedTime} !`;
 
-          this.#showEndScreen("Félicitations !", msg);
-        }, 600);
+          this.#showEndScreen("Félicitations !", msg, true);
+        }, 600); // L'écran de fin arrive juste après les confettis (qui partent à 500ms)
       }
     } else {
-      // Cas ou la paire est mauvaise
+      // --- Cas où la paire est mauvaise ---
+
+
+
       // On laisse les cartes visibles 0.8 seconde avant de les retourner
       setTimeout(() => {
         card1.classList.remove('flip');
         card2.classList.remove('flip');
         this.#flippedCards = [];
         this.#isLocked = false; // Déverrouillage
+
+        // On joue le son adéquat
+        this.#playSound(this.#failSound);
+
       }, 800);
     }
+  }
+
+  /**
+   * Gère les animations et les sons lorsqu'une paire est trouvée.
+   * @param {HTMLElement} card1
+   * @param {HTMLElement} card2
+   */
+  #handleMatchAnimation(card1, card2) {
+    setTimeout(() => {
+      // 1. On lance le son de victoire
+      this.#playSound(this.#matchSound);
+
+      // 2. On lance les confettis sur les DEUX cartes
+      if (typeof confetti === 'function') {
+
+        // Petite fonction interne pour calculer le centre exact d'une carte
+        // (Convertit les pixels de l'écran en un ratio de 0 à 1 pour la librairie)
+        const getCardOrigin = (card) => {
+          const rect = card.getBoundingClientRect();
+          return {
+            x: (rect.left + rect.width / 2) / window.innerWidth,
+            y: (rect.top + rect.height / 2) / window.innerHeight
+          };
+        };
+
+        // Configuration de base des confettis (on en met un peu moins car on tire 2 fois)
+        const confettiConfig = {
+          particleCount: 50,
+          spread: 50,
+          zIndex: 9999,
+          scalar: 0.8 // Réduit un tout petit peu la taille des confettis pour que ça fasse plus "localisé"
+        };
+
+        // Tir sur la première carte
+        confetti({
+          ...confettiConfig,
+          origin: getCardOrigin(card1)
+        });
+
+        // Tir sur la deuxième carte
+        confetti({
+          ...confettiConfig,
+          origin: getCardOrigin(card2)
+        });
+      }
+    }, 500);
   }
 
   /**
@@ -206,7 +385,7 @@ export class Game {
     this.#stopTimer();
     this.#isLocked = true; // On bloque le plateau
     this.endGame();
-    this.#showEndScreen("Temps écoulé !", `Perdu... Il restait ${this.#remainingPairs} paires à trouver.`);
+    this.#showEndScreen("Temps écoulé !", `Perdu... Il restait ${this.#remainingPairs} paires à trouver.`, false);
   }
 
   /**
@@ -214,13 +393,18 @@ export class Game {
    * @param {string} title - Titre à afficher (Victoire/Défaite)
    * @param {string} message - Détail du score/temps
    */
-  #showEndScreen(title, message) {
+  #showEndScreen(title, message, isVictory) {
     document.getElementById('end-title').textContent = title;
     document.getElementById('end-message').textContent = message;
 
-    // Bascule des classes CSS pour masquer le jeu et afficher le menu de fin
+    // On coupe la musique du Jeu
+    this.stopGameMusic();
+
+    // On lance le Jingle
+    this.playJingle(isVictory);
+
     document.querySelector('.game-area').classList.add('hidden');
     document.getElementById('end-screen').classList.remove('hidden');
-    document.querySelector('.game-board').innerHTML = ''; // Nettoyage de la grille
+    document.querySelector('.game-board').innerHTML = '';
   }
 }

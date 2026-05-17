@@ -5,6 +5,7 @@ import { ApiService } from './ApiService.js';
 
 const domManager = new DOMManager();
 const game = new Game();
+const soundBtn = document.getElementById('toggle-sound');
 
 
 /**
@@ -14,6 +15,7 @@ const game = new Game();
 document.getElementById('btn-replay').addEventListener('click', () => {
   document.getElementById('end-screen').classList.add('hidden');
   document.getElementById('start-screen').classList.remove('hidden');
+  game.playMenuMusic(true); // Relance une nouvelle musique
 });
 
 /**
@@ -32,6 +34,9 @@ document.getElementById('abandon').addEventListener('click', async function() {
     // Mise à jour de l'interface pour l'abandon
     document.getElementById('end-title').textContent = "Partie abandonnée...";
     document.getElementById('end-message').textContent = `Temps à l'abandon : ${temps}. La prochaine fois vous y arriverez !`;
+
+    game.stopGameMusic();
+    game.playJingle(false);
 
     // Bascule des écrans
     document.querySelector('.game-area').classList.add('hidden');
@@ -72,6 +77,8 @@ document.querySelector('.game-form').addEventListener('submit', async function (
     // On transmet toutes les informations récoltées à l'instance de Game
     game.startGame(data.id, selectedPackName, domManager, difficultyLevel, isChronoMode);
 
+    game.stopMenuMusic();
+
   } catch (error) {
     // Gestion des erreurs (ex: Serveur de l'IUT injoignable)
     console.error('Erreur API:', error);
@@ -81,4 +88,26 @@ document.querySelector('.game-form').addEventListener('submit', async function (
     document.getElementById('start-screen').classList.remove('hidden');
     document.querySelector('.game-area').classList.add('hidden');
   }
+});
+
+// Gestion de l'activation ou non du son
+soundBtn.addEventListener('click', () => {
+  const isNowMuted = !game.isMuted;
+  game.toggleMuteState(isNowMuted);
+
+  if (game.isMuted) {
+    soundBtn.textContent = '🔇';
+    soundBtn.classList.add('muted');
+  } else {
+    soundBtn.textContent = '🔊';
+    soundBtn.classList.remove('muted');
+  }
+});
+
+document.body.addEventListener('click', function initAudio() {
+  const startScreen = document.getElementById('start-screen');
+  if (!startScreen.classList.contains('hidden')) {
+    game.playMenuMusic(true);
+  }
+  document.body.removeEventListener('click', initAudio);
 });

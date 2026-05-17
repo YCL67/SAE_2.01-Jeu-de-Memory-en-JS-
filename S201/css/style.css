@@ -336,3 +336,36 @@ header h1 {
     height: 100%;
     object-fit: cover;
 }
+
+/* =========================================
+   8. BOUTON SON (FLOTTANT)
+========================================= */
+.sound-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--color-bg-panel);
+    border: 2px solid var(--color-border-input);
+    color: var(--color-text-white);
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 9999; /* Par-dessus tout le reste */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.sound-btn:hover {
+    transform: scale(1.1);
+    background-color: var(--color-bg-input);
+}
+
+/* Classe ajoutée en JS quand le son est coupé */
+.sound-btn.muted {
+    opacity: 0.5;
+}
