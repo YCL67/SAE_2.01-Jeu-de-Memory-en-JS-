@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeu de Memory</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="js/app.js" type="module"></script>
+</head>
+<body>
+
+<div id="audio-popup" class="audio-popup">
+  <div class="audio-popup-content">
+    <h2>ATTENTION !</h2>
+    <p>Ce site comporte du son. Vous pouvez à tout moment le désactiver en bas à droite de la page.</p>
+    <p class="blink-text">Cliquez n'importe où pour continuer</p>
+  </div>
+</div>
+
+<div class="bg-animation">
+  <div class="column up"></div>
+  <div class="column down"></div>
+  <div class="column up"></div>
+  <div class="column down"></div>
+  <div class="column up"></div>
+  <div class="column down"></div>
+</div>
+
+<header>
+  <img src="assets/images/menu/menulogo.png" alt="Logo Poké-Memory" class="logo">
+</header>
+
+<div class="setup-form" id="main-menu">
+  <h2>Choisissez votre mode de jeu</h2>
+  <div class="game-form">
+    <button id="btn-solo" type="button">Mode Solo</button>
+    <button id="btn-multi" type="button">Mode 1v1 Local</button>
+  </div>
+</div>
+
+<div class="setup-form hidden" id="start-screen">
+  <h2 id="setup-title">Configuration</h2>
+  <form id="start-form" class="game-form">
+
+    <label for="pseudo" id="label-pseudo1">Votre pseudo :</label>
+    <input type="text" id="pseudo" required placeholder="Saisissez votre pseudo">
+
+    <div id="player2-group" class="hidden">
+      <label for="pseudo2">Pseudo du Joueur 2 :</label>
+      <input type="text" id="pseudo2" placeholder="Saisissez le pseudo du Joueur 2">
+    </div>
+
+    <label for="difficulty-select">Niveau de difficulté :</label>
+    <select id="difficulty-select">
+      <option value="4">4 Paires (8 cartes)</option>
+      <option value="5">5 Paires (10 cartes)</option>
+      <option value="6">6 Paires (12 cartes)</option>
+      <option value="8">8 Paires (16 cartes)</option>
+    </select>
+
+    <div class="checkbox-group" id="chrono-group">
+      <input type="checkbox" id="chrono-mode" name="mode-chrono">
+      <label for="chrono-mode">Mode CHRONO (Temps illimité)</label>
+    </div>
+
+    <label for="pack-select">Choisissez un paquet de cartes :</label>
+    <select id="pack-select">
+      <option value="differenttypes">Pokémon Différents</option>
+      <option value="sametypes">Pokémon du même type</option>
+      <option value="pikachus">Que des Pikachu</option>
+    </select>
+
+    <button type="submit">Démarrer la partie</button>
+    <button type="button" id="btn-back-menu" style="background-color: var(--color-border-input);">Retour au menu</button>
+  </form>
+</div>
+
+<div class="game-area hidden">
+
+  <div class="game-area-header">
+    <h2>Bonne chance !</h2>
+    <div id="timer-display" class="game-timer">00:00</div>
+    <button id="abandon">Abandonner la partie</button>
+  </div>
+
+  <div class="game-board"></div>
+
+</div>
+
+<div id="end-screen" class="setup-form hidden">
+  <h2 id="end-title">Fin de partie</h2>
+  <div class="game-form">
+    <p id="end-message"></p>
+    <button id="btn-replay" type="button">Retour à l'accueil</button>
+  </div>
+</div>
+
+<button id="toggle-sound" class="sound-btn" title="Activer/Désactiver le son">
+  🔊
+</button>
+
+</body>
+</html>
