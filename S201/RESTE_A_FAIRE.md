@@ -7,8 +7,9 @@ FICHIER AVEC LES CHOSES A FAIRE /MODIFIER ENCORE (et idees de fonctionnalités)
 - Intégration du logo // FAIT
 - Mode "Détente" (temps illimité, chrono vers le haut) // FAIT
 - Revoir l'ecran de fin de partie si jamais
+- Mode de jeu 1v1 local // FAIT 
+- - Effets sonores (sound design) // FAIT
 
         FONCTIONNALITES POSSIBLES:
 
-- Mode de jeu 1v1 local
-- Effets sonores (sound design)
+

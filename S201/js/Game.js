@@ -1,73 +1,91 @@
+// ============================================================================
+// Game.js : Le "Cerveau" du jeu.
+// Cette classe ne gère aucun clic de bouton menu, elle s'occupe UNIQUEMENT
+// des règles du jeu : retourner les cartes, comparer, compter les points,
+// gérer les chronos et les tours du mode Multijoueur.
+// ============================================================================
+
 import { imageCollections } from './ImageCollection.js';
 import { ApiService } from './ApiService.js';
 
-/**
- * Classe Game : Gère toute la logique et les règles du Memory.
- */
 export class Game {
 
-  // Déclaration des variables
-  #id;                 // Identifiant unique de la partie (fourni par l'API)
-  #cards = [];         // Tableau contenant les objets de la collection en cours
-  #flippedCards = [];  // Tableau temporaire stockant les 1 ou 2 cartes actuellement retournées
-  #remainingPairs = 0; // Compteur de paires restantes pour condition de victoire
-  #isLocked = false;   // Valeur pour bloquer les clics pendant les animations
-  #timerInterval = null; // Référence du setInterval pour le chronomètre
-  #timeRemaining = 0;  // Temps en secondes (compte à rebours ou chronomètre selon le mode)
+  // ==========================================
+  // VARIABLES PRIVÉES (Utilisation du '#' pour bloquer l'accès depuis l'extérieur)
+  // ==========================================
 
-  // Gestion des sons ici
+  #id;                 // Identifiant unique de la partie (fourni par l'API)
+  #cards = [];         // Tableau contenant les données des cartes de la partie
+  #flippedCards = [];  // Tableau temporaire stockant les cartes en train d'être regardées (max 2)
+  #remainingPairs = 0; // Compteur de paires restantes (Quand ça tombe à 0, c'est gagné)
+  #isLocked = false;   // Verrou de sécurité : empêche de cliquer sur 3 cartes en même temps
+  #timerInterval = null; // Référence du setInterval (pour pouvoir arrêter le chrono plus tard)
+  #timeRemaining = 0;  // Le temps en cours (qui monte ou descend selon le mode)
+
+  // Variables dédiées au mode 1v1 Local
+  #isMultiplayer = false;
+  #p1Name = "";
+  #p2Name = "";
+  #p1Score = 0;
+  #p2Score = 0;
+  #currentPlayer = 1; // Permet de savoir à qui le tour (1 = Joueur 1, 2 = Joueur 2)
+
+  // ==========================================
+  // SYSTÈME AUDIO (Bruitages, Musiques et Jingles)
+  // ==========================================
+
+  // Bruitages courts (effets de jeu)
   #flipSound = new Audio('assets/sounds/card_flip.mp3');
   #matchSound = new Audio('assets/sounds/pair_found.wav');
   #failSound = new Audio('assets/sounds/pair_miss.wav');
 
-  // Playlist pour le menu
+  // Playlists musicales (tableaux contenant les chemins)
   #menuMusicTracks = [
-      'assets/music/menu_music1.mp3',
-      'assets/music/menu_music2.mp3',
-      'assets/music/menu_music3.mp3'
+    'assets/music/menu_music1.mp3',
+    'assets/music/menu_music2.mp3',
+    'assets/music/menu_music3.mp3'
   ];
-
-  // Playlist pour les parties
   #gameMusicTracks = [
     'assets/music/game_music1.mp3',
     'assets/music/game_music2.mp3',
     'assets/music/game_music3.mp3'
   ];
 
-  // Le lecteur audio principal (vide par défaut)
+  // Lecteurs audio virtuels (comme des lecteurs MP3 intégrés)
   #menuMusic = new Audio();
   #gameMusic = new Audio();
+
+  // Jingles de fin de partie
   #winJingle = new Audio('assets/music/win_music.mp3');
   #loseJingle = new Audio('assets/music/loosing_music.mp3');
 
+  // Variable publique pour savoir si le joueur a cliqué sur le bouton Mute global
+  isMuted = false;
 
-  isMuted = false; // Gestion de l'activation du son ou non. Par défaut, le son est désactivé
+  // --- MÉTHODES DE GESTION DU SON ---
 
-
-
-  // Fonction utilitaire pour jouer un son sans répétitions
+  /**
+   * Joue un effet sonore court. Utilise 'cloneNode' pour permettre à plusieurs
+   * sons de se superposer (ex: si le joueur clique très vite sur 2 cartes).
+   */
   #playSound(audioElement) {
-    // Si le jeu est mute, on ne fait rien
-    if (this.isMuted) return;
-
-    // On crée un "clone" du son pour que chaque son aie son propre player
+    if (this.isMuted) return; // Sécurité : si on est Mute, on bloque direct
     const soundClone = audioElement.cloneNode();
-
     soundClone.play().catch(err => console.log("Son bloqué par le navigateur", err));
   }
 
-  // Fonctions utilitaires pour la gestion de la musique
   playMenuMusic(forceNewTrack = false) {
-    this.#winJingle.pause();
+    this.#winJingle.pause(); // Coupe les sons de victoire/défaite s'ils tournaient encore
     this.#loseJingle.pause();
 
+    // Si on demande une nouvelle piste, on la tire au hasard dans la playlist Menu
     if (forceNewTrack || !this.#menuMusic.src) {
       const randomIndex = Math.floor(Math.random() * this.#menuMusicTracks.length);
       this.#menuMusic.src = this.#menuMusicTracks[randomIndex];
     }
 
-    this.#menuMusic.loop = true;
-    this.#menuMusic.volume = 0.3;
+    this.#menuMusic.loop = true; // Tourne en boucle
+    this.#menuMusic.volume = 0.3; // Baisse le volume pour ne pas agresser les oreilles
 
     if (!this.isMuted) {
       this.#menuMusic.play().catch(() => console.log("Attente d'interaction"));
@@ -76,51 +94,18 @@ export class Game {
 
   stopMenuMusic() {
     this.#menuMusic.pause();
-    this.#menuMusic.currentTime = 0;
+    this.#menuMusic.currentTime = 0; // Rembobine à zéro
   }
 
-  playJingle(isVictory) {
-    if (this.isMuted) return;
-    if (isVictory) {
-      this.#winJingle.currentTime = 0;
-      this.#winJingle.play().catch(()=>{});
-      this.#winJingle.volume = 0.3;
-    } else {
-      this.#loseJingle.currentTime = 0;
-      this.#loseJingle.play().catch(()=>{});
-      this.#loseJingle.volume = 0.3;
-    }
-  }
-
-  toggleMuteState(forceMuteState) {
-    this.isMuted = forceMuteState;
-    if (this.isMuted) {
-      this.#menuMusic.pause();
-      this.#gameMusic.pause();
-      this.#winJingle.pause();
-      this.#loseJingle.pause();
-    } else {
-      const startScreen = document.getElementById('start-screen');
-      if (startScreen && !startScreen.classList.contains('hidden')) {
-        this.#menuMusic.play().catch(()=>{});
-      } else {
-        // Si on est en jeu, on relance la musique du jeu
-        const gameArea = document.querySelector('.game-area');
-        if (gameArea && !gameArea.classList.contains('hidden')) {
-          this.#gameMusic.play().catch(()=>{});
-        }
-      }
-    }
-  }
   playGameMusic() {
-    this.stopMenuMusic(); // On s'assure que la musique du menu est bien coupée
+    this.stopMenuMusic(); // Sécurité : on s'assure que la musique du menu s'arrête
 
-    // On tire une musique de jeu au hasard à chaque nouvelle partie
+    // Sélection aléatoire d'une musique de combat/jeu
     const randomIndex = Math.floor(Math.random() * this.#gameMusicTracks.length);
     this.#gameMusic.src = this.#gameMusicTracks[randomIndex];
 
     this.#gameMusic.loop = true;
-    this.#gameMusic.volume = 0.2; // Un peu plus bas pour bien entendre les bruitages
+    this.#gameMusic.volume = 0.2; // Volume plus bas pour bien entendre les bruitages des cartes
 
     if (!this.isMuted) {
       this.#gameMusic.play().catch(()=>{});
@@ -132,79 +117,164 @@ export class Game {
     this.#gameMusic.currentTime = 0;
   }
 
+  playJingle(isVictory) {
+    if (this.isMuted) return;
+
+    // Selon l'issue de la partie, on joue le jingle adéquat
+    if (isVictory) {
+      this.#winJingle.currentTime = 0;
+      this.#winJingle.play().catch(()=>{});
+      this.#winJingle.volume = 0.3;
+    } else {
+      this.#loseJingle.currentTime = 0;
+      this.#loseJingle.play().catch(()=>{});
+      this.#loseJingle.volume = 0.3;
+    }
+  }
 
   /**
-   * Formate le temps en chaîne "MM:SS".
-   * @returns {string} Le temps formaté (exemple: "01:15")
+   * Méthode appelée par app.js quand le joueur clique sur le bouton Mute.
+   * Analyse l'écran actuel pour couper ou relancer la bonne musique.
+   */
+  toggleMuteState(forceMuteState) {
+    this.isMuted = forceMuteState;
+    if (this.isMuted) {
+      // On coupe absolument TOUT
+      this.#menuMusic.pause();
+      this.#gameMusic.pause();
+      this.#winJingle.pause();
+      this.#loseJingle.pause();
+    } else {
+      // On rallume selon l'écran où on se trouve
+      const startScreen = document.getElementById('start-screen');
+      const mainMenu = document.getElementById('main-menu'); // NOUVEAU : On cible le menu principal
+
+      // Si on est sur le Formulaire de config OU sur le Menu Principal
+      if ((startScreen && !startScreen.classList.contains('hidden')) ||
+          (mainMenu && !mainMenu.classList.contains('hidden'))) {
+        this.#menuMusic.play().catch(()=>{});
+      } else {
+        // Sinon, si on est en train de jouer
+        const gameArea = document.querySelector('.game-area');
+        if (gameArea && !gameArea.classList.contains('hidden')) {
+          this.#gameMusic.play().catch(()=>{});
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // LOGIQUE CENTRALE DU JEU
+  // ==========================================
+
+  /**
+   * "Getter" : Fonction qui se comporte comme une variable.
+   * Transforme les secondes brutes (ex: 75) en format lisible (ex: "01:15").
    */
   get formattedTime() {
     const minutes = Math.floor(this.#timeRemaining / 60);
     const secondes = this.#timeRemaining % 60;
-    // padStart ajoute un '0' devant si le chiffre est inférieur à 10
+    // padStart ajoute un '0' automatique si le chiffre est inférieur à 10
     return `${minutes.toString().padStart(2, '0')}:${secondes.toString().padStart(2, '0')}`;
   }
 
   /**
-   * Initialise et lance une nouvelle partie.
-   * @param {number} id - L'ID de session renvoyé par l'API
-   * @param {string} packName - Le nom de la collection choisie ('differenttypes', etc.)
-   * @param {DOMManager} domManager - L'instance gérant l'interface
-   * @param {number|string} difficulty - Le nombre de paires (4, 5, 6, 8)
-   * @param {boolean} isChronoMode - True si le joueur a coché le "Mode Détente"
+   * Méthode MAÎTRESSE. Initialise tout le plateau et lance le timer.
    */
-  startGame(id, packName, domManager, difficulty, isChronoMode = false) {
+  startGame(id, packName, domManager, difficulty, isChronoMode = false,
+            isMultiplayer = false, p1 = "Joueur 1", p2 = "Joueur 2") {
+
+    // 1. Sauvegarde des options choisies par le joueur
     this.#id = id;
     this.isChronoMode = isChronoMode;
+    this.#isMultiplayer = isMultiplayer;
+    this.#p1Name = p1;
+    this.#p2Name = p2;
+    this.#p1Score = 0;
+    this.#p2Score = 0;
+    this.#currentPlayer = 1;
+
     let pairsCount = parseInt(difficulty);
 
-    // Initialisation du temps selon le mode de jeu choisi
+    // 2. Initialisation du temps
     if (this.isChronoMode) {
-      this.#timeRemaining = 0; // Mode CHRONO : on compte vers le haut
+      this.#timeRemaining = 0; // Mode Détente (Chrono vers le haut)
     } else {
-      this.#timeRemaining = pairsCount * 10; // Mode normal : 10 secondes par paire
+      this.#timeRemaining = pairsCount * 10; // Mode Tryhard (10s par paire, Timer vers le bas)
     }
 
-    // Préparation du paquet
+    // 3. Préparation du paquet de cartes
     const fullCollection = imageCollections[packName];
-    // On mélange la collection complète puis on en coupe un morceau (slice) selon la difficulté
+    // On mélange tout, on coupe le nombre de cartes voulues, on duplique pour faire des paires
     const selectedImages = this.#shuffle(fullCollection).slice(0, pairsCount);
-
-    // On duplique les images pour créer les paires et on mélange le paquet final
     const deck = [...selectedImages, ...selectedImages];
+
+    // On remélange le paquet final et on sauvegarde
     this.#cards = this.#shuffle(deck);
     this.#remainingPairs = pairsCount;
 
-    // On effectue l'affichage a l'aide du DOMManager
+    // 4. Affichage dans le HTML via le DOMManager
     domManager.createCards(this.#cards);
 
-    // Gestion responsive de la grille CSS (4, 5, 6 ou 8 colonnes)
+    // 5. Gestion CSS responsive (Ajuste le nombre de colonnes selon la difficulté)
     const boardElement = document.querySelector('.game-board');
     boardElement.classList.remove('cols-5', 'cols-6', 'cols-8');
-
     if (pairsCount === 5) boardElement.classList.add('cols-5');
     else if (pairsCount === 6) boardElement.classList.add('cols-6');
     else if (pairsCount === 8) boardElement.classList.add('cols-8');
 
-    // On ajoute les Event Listeners sur les cartes générées
+    // 6. Ajout des "oreilles" (Écouteurs de clics) sur chaque carte
     const cardElements = document.querySelectorAll('.card');
     cardElements.forEach(cardElement => {
-      // On utilise une fonction fléchée pour conserver le contexte 'this' de la classe Game
+      // On utilise une fonction fléchée () => pour conserver le contexte 'this' global de Game.js
       cardElement.addEventListener('click', () => this.#handleCardClick(cardElement));
     });
 
-    // Lancement du temps
+    // 7. Nettoyage de l'interface (Sécurité cruciale si on repasse d'un mode 1v1 à Solo)
+    const timerDisplay = document.getElementById('timer-display');
+    if (timerDisplay) timerDisplay.classList.remove('player1-turn', 'player2-turn');
+
+    // 8. Lancement de la musique et du jeu
     this.playGameMusic();
-    this.#startTimer();
+
+    if (this.#isMultiplayer) {
+      // En 1v1, le chrono devient la bannière d'annonce des tours !
+      this.#updateTurnDisplay();
+    } else {
+      // En solo, on lance le chronomètre/timer classique
+      this.#startTimer();
+    }
   }
 
   /**
-   * Arrête le jeu proprement et synchronise les résultats avec le serveur.
+   * Met à jour dynamiquement la bannière supérieure en mode 1v1
+   * (Couleur et nom du joueur dont c'est le tour).
+   */
+  #updateTurnDisplay() {
+    const timerDisplay = document.getElementById('timer-display');
+    if (!timerDisplay) return;
+
+    // On retire les couleurs précédentes
+    timerDisplay.classList.remove('player1-turn', 'player2-turn');
+
+    // On applique les textes et couleurs selon le joueur actif
+    if (this.#currentPlayer === 1) {
+      timerDisplay.textContent = `À ${this.#p1Name} de jouer ! (Score: ${this.#p1Score})`;
+      timerDisplay.classList.add('player1-turn');
+    } else {
+      timerDisplay.textContent = `À ${this.#p2Name} de jouer ! (Score: ${this.#p2Score})`;
+      timerDisplay.classList.add('player2-turn');
+    }
+  }
+
+  /**
+   * Fonction de clôture. Stoppe le jeu et prévient la base de données.
    */
   async endGame() {
-    this.#stopTimer();
+    this.#stopTimer(); // Coupe le moteur temporel
 
     try {
-      // On envoie le score final (0 si victoire complète, > 0 si abandon/défaite)
+      // On envoie le score final à l'API (0 si victoire complète, > 0 si abandon/défaite)
       const result = await ApiService.updateGameResult(this.#id, this.#remainingPairs);
       console.log('Score synchronisé avec succès :', result);
     } catch (error) {
@@ -212,93 +282,131 @@ export class Game {
     }
   }
 
+  // ==========================================
+  // RÉACTIONS AUX ACTIONS DU JOUEUR
+  // ==========================================
+
   /**
-   * Gère le comportement lorsqu'une carte est cliquée.
-   * @param {HTMLElement} cardElement - L'élément HTML cliqué
+   * Déclenché à chaque fois qu'on clique sur une carte HTML.
    */
   #handleCardClick(cardElement) {
-    // On bloque si le jeu analyse déjà 2 cartes ou si la carte cliquée est déjà face visible
+    // SÉCURITÉ : On ignore le clic si le jeu vérifie déjà une paire, ou si la carte est déjà face visible
     if (this.#isLocked || cardElement.classList.contains('flip')) return;
 
-    // On joue le son de la carte qui se retourne
     this.#playSound(this.#flipSound);
 
-    // On retourne visuellement la carte et on la stocke
+    // On ajoute la classe CSS qui retourne la carte
     cardElement.classList.add('flip');
-    this.#flippedCards.push(cardElement);
+    this.#flippedCards.push(cardElement); // On mémorise la carte
 
-    // Si 2 cartes sont retournées, on déclenche la vérification
+    // Dès qu'on a 2 cartes mémorisées, on lance l'analyse
     if (this.#flippedCards.length === 2) {
       this.#checkForMatch();
     }
   }
 
   /**
-   * Vérifie si les deux cartes retournées forment une paire valide.
+   * Le "Juge" du jeu. Analyse les deux cartes retournées.
    */
   #checkForMatch() {
-    this.#isLocked = true; // Verrouillage immédiat pour empêcher d'autres clics
+    this.#isLocked = true; // On verrouille le plateau pour empêcher les clics frénétiques
     const [card1, card2] = this.#flippedCards;
 
-    // Comparaison basée sur l'attribut 'data-pokemon-id' injecté par le DOMManager
+    // On compare les IDs des Pokémons cachés dans le HTML (data-pokemon-id)
     if (card1.dataset.pokemonId === card2.dataset.pokemonId) {
-      // --- Cas où la paire est trouvée ---
+      // --- MATCH TROUVÉ ! ---
+      this.#handleMatchAnimation(card1, card2); // Lance sons + confettis
 
-      // On délègue le son et les confettis à notre nouvelle fonction dédiée
-      this.#handleMatchAnimation(card1, card2);
+      // Règles du mode Multijoueur
+      if (this.#isMultiplayer) {
+        if (this.#currentPlayer === 1) {
+          this.#p1Score++;
+          // On ajoute la classe CSS pour la brillance bleue
+          card1.classList.add('matched-p1');
+          card2.classList.add('matched-p1');
+        } else {
+          this.#p2Score++;
+          // On ajoute la classe CSS pour la brillance rouge
+          card1.classList.add('matched-p2');
+          card2.classList.add('matched-p2');
+        }
+        this.#updateTurnDisplay(); // Met à jour le score à l'écran
+        // NOTE: Au Memory, si tu trouves, tu rejoues ! Donc on ne change pas de joueur.
+      }
 
+      // Nettoyage interne pour le prochain tour
       this.#flippedCards = [];
       this.#remainingPairs--;
-      this.#isLocked = false;
+      this.#isLocked = false; // Déverrouille le plateau
 
-      // Vérification de la condition de victoire
+      // --- CONDITION DE FIN DE PARTIE ---
       if (this.#remainingPairs === 0) {
-        // Petit délai pour laisser l'animation de la dernière carte se terminer
+        // Petit délai (600ms) pour laisser l'animation de la dernière carte se terminer
         setTimeout(() => {
           this.endGame();
 
-          // Message dynamique selon le mode de jeu
-          const msg = this.isChronoMode
-              ? `Victoire ! Vous avez terminé en ${this.formattedTime} !`
-              : `Victoire ! Il vous restait ${this.formattedTime} !`;
+          let msg = "";
+          let title = "Félicitations !";
 
-          this.#showEndScreen("Félicitations !", msg, true);
-        }, 600); // L'écran de fin arrive juste après les confettis (qui partent à 500ms)
+          // Génération du texte de fin selon le mode de jeu
+          if (this.#isMultiplayer) {
+            // Logique de victoire 1v1
+            if (this.#p1Score > this.#p2Score) {
+              msg = `Victoire de ${this.#p1Name} avec ${this.#p1Score} paires trouvées contre ${this.#p2Score} !`;
+            } else if (this.#p2Score > this.#p1Score) {
+              msg = `Victoire de ${this.#p2Name} avec ${this.#p2Score} paires trouvées contre ${this.#p1Score} !`;
+            } else {
+              title = "Égalité !";
+              msg = `Vous avez trouvé ${this.#p1Score} paires chacun ! Bien joué.`;
+            }
+          } else {
+            // Logique de victoire Solo
+            msg = this.isChronoMode
+                ? `Victoire ! Vous avez terminé en ${this.formattedTime} !`
+                : `Victoire ! Il vous restait ${this.formattedTime} !`;
+          }
+
+          this.#showEndScreen(title, msg, true); // True = On lance le jingle de victoire
+        }, 600);
       }
     } else {
-      // --- Cas où la paire est mauvaise ---
+      // --- MAUVAISE PAIRE ---
 
 
-
-      // On laisse les cartes visibles 0.8 seconde avant de les retourner
+      // On laisse les cartes visibles 800ms pour que le joueur mémorise leur position
       setTimeout(() => {
+        // On les retourne face cachée
         card1.classList.remove('flip');
         card2.classList.remove('flip');
         this.#flippedCards = [];
-        this.#isLocked = false; // Déverrouillage
+        this.#isLocked = false;
 
         // On joue le son adéquat
         this.#playSound(this.#failSound);
 
+        // Logique Multijoueur : Ce n'est plus à ton tour !
+        if (this.#isMultiplayer) {
+          // Si c'était 1 ça devient 2, sinon ça devient 1
+          this.#currentPlayer = this.#currentPlayer === 1 ? 2 : 1;
+          this.#updateTurnDisplay();
+        }
       }, 800);
     }
   }
 
   /**
-   * Gère les animations et les sons lorsqu'une paire est trouvée.
-   * @param {HTMLElement} card1
-   * @param {HTMLElement} card2
+   * Gère les récompenses visuelles (Confettis ciblés) et sonores.
    */
   #handleMatchAnimation(card1, card2) {
+    // Délai de 500ms : on attend que la carte soit presque totalement retournée
     setTimeout(() => {
-      // 1. On lance le son de victoire
       this.#playSound(this.#matchSound);
 
-      // 2. On lance les confettis sur les DEUX cartes
+      // Sécurité : On vérifie que la librairie externe a bien été chargée dans le HTML
       if (typeof confetti === 'function') {
 
-        // Petite fonction interne pour calculer le centre exact d'une carte
-        // (Convertit les pixels de l'écran en un ratio de 0 à 1 pour la librairie)
+        // Mathématiques basiques : Trouve le centre de la carte (en X et Y)
+        // et le convertit en pourcentage (0 à 1) pour la librairie de confettis.
         const getCardOrigin = (card) => {
           const rect = card.getBoundingClientRect();
           return {
@@ -307,104 +415,88 @@ export class Game {
           };
         };
 
-        // Configuration de base des confettis (on en met un peu moins car on tire 2 fois)
         const confettiConfig = {
           particleCount: 50,
           spread: 50,
           zIndex: 9999,
-          scalar: 0.8 // Réduit un tout petit peu la taille des confettis pour que ça fasse plus "localisé"
+          scalar: 0.8
         };
 
-        // Tir sur la première carte
-        confetti({
-          ...confettiConfig,
-          origin: getCardOrigin(card1)
-        });
-
-        // Tir sur la deuxième carte
-        confetti({
-          ...confettiConfig,
-          origin: getCardOrigin(card2)
-        });
+        // BAM ! Double explosion sur les deux cartes
+        confetti({ ...confettiConfig, origin: getCardOrigin(card1) });
+        confetti({ ...confettiConfig, origin: getCardOrigin(card2) });
       }
     }, 500);
   }
 
   /**
-   * Algorithme de mélange.
-   * @param {Array} array - Le tableau à mélanger
-   * @returns {Array} Une nouvelle copie du tableau, mélangée
+   * Algorithme de Fisher-Yates : Le meilleur moyen de mélanger un tableau en JavaScript.
    */
   #shuffle(array) {
-    const arrayCopy = [...array];
+    const arrayCopy = [...array]; // Copie le tableau pour ne pas modifier l'original
     for (let i = arrayCopy.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      // Utilisation du 'Destructuring assignment' pour échanger les valeurs proprement
+      // Utilisation du 'Destructuring' pour échanger deux variables sans variable temporaire
       [arrayCopy[i], arrayCopy[j]] = [arrayCopy[j], arrayCopy[i]];
     }
     return arrayCopy;
   }
 
-  /**
-   * Initialise et gère la boucle temporelle du jeu.
-   */
+  // ==========================================
+  // GESTION DU TEMPS (SOLO)
+  // ==========================================
+
   #startTimer() {
     const timerDisplay = document.getElementById('timer-display');
-    if (timerDisplay) timerDisplay.textContent = this.formattedTime;
+    if (timerDisplay) timerDisplay.textContent = this.formattedTime; // Affichage initial
 
+    // setInterval exécute le code à l'intérieur toutes les 1000 millisecondes (1 seconde)
     this.#timerInterval = setInterval(() => {
       if (this.isChronoMode) {
-        // Mode CHRONO : Chronomètre classique (+1s)
-        this.#timeRemaining++;
+        this.#timeRemaining++; // Compte en avant
       } else {
-        // Mode normal : Compte à rebours (-1s)
-        this.#timeRemaining--;
+        this.#timeRemaining--; // Compte à rebours
 
-        // Vérification de la défaite par manque de temps
+        // Vérification du Game Over
         if (this.#timeRemaining <= 0) {
           this.#handleTimeUp();
         }
       }
 
-      // Mise à jour de l'affichage à chaque tic
+      // Mise à jour visuelle du temps restant/écoulé
       if (timerDisplay) timerDisplay.textContent = this.formattedTime;
     }, 1000);
   }
 
-  /**
-   * Stoppe l'intervalle temporel en cours.
-   */
   #stopTimer() {
+    // clearInterval détruit la boucle temporelle pour économiser les ressources du navigateur
     if (this.#timerInterval) clearInterval(this.#timerInterval);
   }
 
-  /**
-   * Gère la séquence de défaite lorsque le temps est écoulé.
-   */
   #handleTimeUp() {
     this.#stopTimer();
-    this.#isLocked = true; // On bloque le plateau
+    this.#isLocked = true; // On bloque le plateau, le temps est écoulé !
     this.endGame();
+    // Affiche l'écran de fin (False = lance le Jingle de défaite)
     this.#showEndScreen("Temps écoulé !", `Perdu... Il restait ${this.#remainingPairs} paires à trouver.`, false);
   }
 
   /**
-   * Fonction pour basculer sur l'écran de fin.
-   * @param {string} title - Titre à afficher (Victoire/Défaite)
-   * @param {string} message - Détail du score/temps
+   * Bascule l'interface du jeu vers l'écran de résultats final.
    */
   #showEndScreen(title, message, isVictory) {
     document.getElementById('end-title').textContent = title;
     document.getElementById('end-message').textContent = message;
 
-    // On coupe la musique du Jeu
+    // Musique : Coupe l'ambiance de jeu et lance le jingle de fin
     this.stopGameMusic();
-
-    // On lance le Jingle
     this.playJingle(isVictory);
 
+    // Bascule des div HTML
     document.querySelector('.game-area').classList.add('hidden');
     document.getElementById('end-screen').classList.remove('hidden');
+
+    // Nettoie la grille pour éviter de garder des vieux éléments HTML en mémoire
     document.querySelector('.game-board').innerHTML = '';
   }
 }

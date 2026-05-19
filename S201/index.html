@@ -10,6 +10,14 @@
 </head>
 <body>
 
+<div id="audio-popup" class="audio-popup">
+  <div class="audio-popup-content">
+    <h2>ATTENTION !</h2>
+    <p>Ce site comporte du son. Vous pouvez à tout moment le désactiver en bas à droite de la page.</p>
+    <p class="blink-text">Cliquez n'importe où pour continuer</p>
+  </div>
+</div>
+
 <div class="bg-animation">
   <div class="column up"></div>
   <div class="column down"></div>
@@ -23,12 +31,25 @@
   <img src="assets/images/menu/menulogo.png" alt="Logo Poké-Memory" class="logo">
 </header>
 
-<div class="setup-form" id="start-screen">
-  <h2>Démarrer une nouvelle partie</h2>
+<div class="setup-form" id="main-menu">
+  <h2>Choisissez votre mode de jeu</h2>
+  <div class="game-form">
+    <button id="btn-solo" type="button">Mode Solo</button>
+    <button id="btn-multi" type="button">Mode 1v1 Local</button>
+  </div>
+</div>
+
+<div class="setup-form hidden" id="start-screen">
+  <h2 id="setup-title">Configuration</h2>
   <form id="start-form" class="game-form">
 
-    <label for="pseudo">Votre pseudo :</label>
+    <label for="pseudo" id="label-pseudo1">Votre pseudo :</label>
     <input type="text" id="pseudo" required placeholder="Saisissez votre pseudo">
+
+    <div id="player2-group" class="hidden">
+      <label for="pseudo2">Pseudo du Joueur 2 :</label>
+      <input type="text" id="pseudo2" placeholder="Saisissez le pseudo du Joueur 2">
+    </div>
 
     <label for="difficulty-select">Niveau de difficulté :</label>
     <select id="difficulty-select">
@@ -38,7 +59,7 @@
       <option value="8">8 Paires (16 cartes)</option>
     </select>
 
-    <div class="checkbox-group">
+    <div class="checkbox-group" id="chrono-group">
       <input type="checkbox" id="chrono-mode" name="mode-chrono">
       <label for="chrono-mode">Mode CHRONO (Temps illimité)</label>
     </div>
@@ -51,6 +72,7 @@
     </select>
 
     <button type="submit">Démarrer la partie</button>
+    <button type="button" id="btn-back-menu" style="background-color: var(--color-border-input);">Retour au menu</button>
   </form>
 </div>
 
