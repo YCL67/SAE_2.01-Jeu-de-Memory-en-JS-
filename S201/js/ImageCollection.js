@@ -61,4 +61,80 @@ export const imageCollections = {
         {id: 16, name: "pika16", url: "./assets/images/pack3/pika16.png"}
 
     ],
+    legendary: [
+        {id: 1, name: "dialga", url: "./assets/images/pack4/dialga.png"},
+        {id: 2, name: "entei", url: "./assets/images/pack4/entei.png"},
+        {id: 3, name: "hooh", url: "./assets/images/pack4/hooh.png"},
+        {id: 4, name: "lugia", url: "./assets/images/pack4/lugia.png"},
+        {id: 5, name: "lunala", url: "./assets/images/pack4/lunala.png"},
+        {id: 6, name: "mewtwo", url: "./assets/images/pack4/mewtwo.png"},
+        {id: 7, name: "nekrozma", url: "./assets/images/pack4/nekrozma.png"},
+        {id: 8, name: "palkia", url: "./assets/images/pack4/palkia.png"},
+        {id: 9, name: "raikou", url: "./assets/images/pack4/raikou.png"},
+        {id: 10, name: "rayquaza", url: "./assets/images/pack4/rayquaza.png"},
+        {id: 11, name: "reshiram", url: "./assets/images/pack4/reshiram.png"},
+        {id: 12, name: "solgaleo", url: "./assets/images/pack4/solgaleo.png"},
+        {id: 13, name: "suicune", url: "./assets/images/pack4/suicune.png"},
+        {id: 14, name: "zekrom", url: "./assets/images/pack4/zekrom.png"},
+        {id: 15, name: "zygarde", url: "./assets/images/pack4/zygarde.png"},
+        {id: 16, name: "hoopa", url: "./assets/images/pack4/hoopa.png"}
+
+    ],
+    mega: [
+        {id: 1, name: "mbrasegali", url: "./assets/images/pack5/mbrasegali.png"},
+        {id: 2, name: "mcizayox", url: "./assets/images/pack5/mcizayox.png"},
+        {id: 3, name: "mdracaufeux", url: "./assets/images/pack5/mdracaufeux.png"},
+        {id: 4, name: "mdracaufeuy", url: "./assets/images/pack5/mdracaufeuy.png"},
+        {id: 5, name: "mflorizarre", url: "./assets/images/pack5/mflorizarre.png"},
+        {id: 6, name: "mgallame", url: "./assets/images/pack5/mgallame.png"},
+        {id: 7, name: "mgardevoir", url: "./assets/images/pack5/mgardevoir.png"},
+        {id: 8, name: "mjungko", url: "./assets/images/pack5/mjungko.png"},
+        {id: 9, name: "mlaggron", url: "./assets/images/pack5/mlaggron.png"},
+        {id: 10, name: "mleviator", url: "./assets/images/pack5/mleviator.png"},
+        {id: 11, name: "mlucario", url: "./assets/images/pack5/mlucario.png"},
+        {id: 12, name: "mmewtwox", url: "./assets/images/pack5/mmewtwox.png"},
+        {id: 13, name: "mmewtwoy", url: "./assets/images/pack5/mmewtwoy.png"},
+        {id: 14, name: "mpharamp", url: "./assets/images/pack5/mpharamp.png"},
+        {id: 15, name: "mrayquaza", url: "./assets/images/pack5/mrayquaza.png"},
+        {id: 16, name: "mtortank", url: "./assets/images/pack5/mtortank.png"}
+
+    ],
+    rainbow: [
+        {id: 1, name: "archeduc", url: "./assets/images/pack6/archeduc.png"},
+        {id: 2, name: "argouste", url: "./assets/images/pack6/argouste.png"},
+        {id: 3, name: "boumata", url: "./assets/images/pack6/boumata.png"},
+        {id: 4, name: "dracolosse", url: "./assets/images/pack6/dracolosse.png"},
+        {id: 5, name: "draieul", url: "./assets/images/pack6/draieul.png"},
+        {id: 6, name: "ekaiser", url: "./assets/images/pack6/ekaiser.png"},
+        {id: 7, name: "felinferno", url: "./assets/images/pack6/felinferno.png"},
+        {id: 8, name: "feunard", url: "./assets/images/pack6/feunard.png"},
+        {id: 9, name: "floramantis", url: "./assets/images/pack6/floramantis.png"},
+        {id: 10, name: "hyporoi", url: "./assets/images/pack6/hyporoi.png"},
+        {id: 11, name: "lokhlass", url: "./assets/images/pack6/lokhlass.png"},
+        {id: 12, name: "lougaroc", url: "./assets/images/pack6/lougaroc.png"},
+        {id: 13, name: "lucanon", url: "./assets/images/pack6/lucanon.png"},
+        {id: 14, name: "metalosse", url: "./assets/images/pack6/metalosse.png"},
+        {id: 15, name: "oratoria", url: "./assets/images/pack6/oratoria.png"},
+        {id: 16, name: "tauros", url: "./assets/images/pack6/tauros.png"}
+
+    ],
+    shiny: [
+        {id: 1, name: "altaria", url: "./assets/images/pack7/altaria.png"},
+        {id: 2, name: "amphinobi", url: "./assets/images/pack7/amphinobi.png"},
+        {id: 3, name: "archeduc", url: "./assets/images/pack7/archeduc.png"},
+        {id: 4, name: "artikodin", url: "./assets/images/pack7/artikodin.png"},
+        {id: 5, name: "boumata", url: "./assets/images/pack7/boumata.png"},
+        {id: 6, name: "branette", url: "./assets/images/pack7/branette.png"},
+        {id: 7, name: "bruyverne", url: "./assets/images/pack7/bruyverne.png"},
+        {id: 8, name: "cizayox", url: "./assets/images/pack7/cizayox.png"},
+        {id: 9, name: "darkrai", url: "./assets/images/pack7/darkrai.png"},
+        {id: 10, name: "dracaufeu", url: "./assets/images/pack7/dracaufeu.png"},
+        {id: 11, name: "electrode", url: "./assets/images/pack7/electrode.png"},
+        {id: 12, name: "feunard", url: "./assets/images/pack7/feunard.png"},
+        {id: 13, name: "gardevoir", url: "./assets/images/pack7/gardevoir.png"},
+        {id: 14, name: "hooh", url: "./assets/images/pack7/hooh.png"},
+        {id: 15, name: "lougaroc", url: "./assets/images/pack7/lougaroc.png"},
+        {id: 16, name: "reshiram", url: "./assets/images/pack7/reshiram.png"}
+
+    ],
 };
